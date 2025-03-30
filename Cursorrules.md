@@ -1,98 +1,12 @@
-# Testing Documentation
-DO NOT REWRITE ANYTHING DUE TO FAILED TEST! DOCUMENT RESULTS OF THE TEST and ask for next action. Once a test fails, the most probable reason for failing is a reference to a file that has been moved. For fixes always review the interdependencies in the files. 
-
-This document outlines the testing strategy and setup for the User Management System.
-
-## Testing Framework
-
-We use Jest as our primary testing framework. The setup includes:
-
-- Jest for test running and assertions
-- React Testing Library for component testing
-- Node-mocks-http for API route testing
-- Mock implementations for Supabase client
-
-## Running Tests
-
-To run all tests:
-
-```bash
-npm test
-```
-
-To run tests in watch mode (recommended during development):
-
-```bash
-npm run test:watch
-```
-
-To run a specific test file:
-
-```bash
-npm test -- path/to/test-file.js
-```
-
-## Test Structure
-
-Tests are organized in the `__tests__` directory, mirroring the structure of the source code:
-
-```
-__tests__/
-  ├── components/       # Component tests
-  ├── lib/              # Library/utility tests
-  ├── middleware/       # Middleware tests
-  ├── pages/            # Page component and API route tests
-  └── simple.test.js    # Basic test to verify Jest setup
-```
-
-## Mocking Strategy
-
-### Supabase Client
-
-The Supabase client is mocked in each test file that requires it. The mock implementation provides:
-
-- Authentication methods (signIn, signUp, signOut, etc.)
-- Database query methods (from, select, insert, update, delete, etc.)
-- Storage methods for file uploads
-
-Example mock implementation:
-
-```javascript
-jest.mock('../../lib/supabase', () => ({
-  supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn(),
-    auth: {
-      signInWithPassword: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-    },
-  },
-  getServiceSupabase: jest.fn(),
-}));
-```
-
-### API Routes
-
-API routes are tested using `node-mocks-http` to create mock request and response objects:
-
-```javascript
-import { createMocks } from 'node-mocks-http';
-
-const { req, res } = createMocks({
-  method: 'GET',
-  headers: {
-    authorization: 'Bearer test-token',
-  },
-});
-```
-
-## Test Coverage
+Always read the whole related codebase for each functionality.
+Our goal is to verify the functionality is existing, is working, the whole flow is connected, it makes sense and there are tests in place for each path and functionality. 
+Make sure you understand the end user flow from end to end for each functionality type.
+Verify that the whole flow is implemented.
+Before we start to verify the functionality make sure the referenced files and functions exist in the right location. If they do not exist, search the whole remaining codebase and locate the file. If you don't find it ask the user for next steps.
+There shall be tests related to each functionality. 
+Run the tests but do not change anything in the functionality if they fail. If they fail, propose possible causes with probability to the end user and ask how to proceed. 
+Make sure the functionality is accessible from the front page for the user. 
+We verify the functionality one step at the time. Once done we update this file and mark it as verified. 
 
 # User Management System - End User Functionality Overview
 

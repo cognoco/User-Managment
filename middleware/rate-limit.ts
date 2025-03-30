@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Redis } from '@upstash/redis';
 import { UserManagementError } from '@/lib/types/errors';
+import { rateLimitConfig, redisConfig } from '@/lib/config';
 
 interface RateLimitOptions {
   windowMs?: number; // Time window in milliseconds
@@ -12,8 +13,8 @@ interface RateLimitOptions {
 }
 
 const defaultOptions: Required<RateLimitOptions> = {
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: rateLimitConfig.windowMs, // Default from config
+  max: rateLimitConfig.max, // Default from config
   keyGenerator: (req) => {
     return `rate-limit:${req.headers['x-forwarded-for'] || req.socket.remoteAddress}`;
   },
@@ -26,10 +27,10 @@ const defaultOptions: Required<RateLimitOptions> = {
   skipSuccessfulRequests: false,
 };
 
-// Initialize Redis client (you'll need to add REDIS_URL to your environment variables)
+// Initialize Redis client with configuration
 const redis = new Redis({
-  url: process.env.REDIS_URL || '',
-  token: process.env.REDIS_TOKEN || '',
+  url: redisConfig.url,
+  token: redisConfig.token,
 });
 
 export function rateLimit(options: RateLimitOptions = {}) {
@@ -41,6 +42,12 @@ export function rateLimit(options: RateLimitOptions = {}) {
     next: () => Promise<void>
   ) {
     try {
+      // Skip rate limiting if Redis is not properly configured
+      if (!redisConfig.enabled) {
+        console.warn('Rate limiting is disabled because Redis is not configured');
+        return await next();
+      }
+
       const key = opts.keyGenerator(req);
       const now = Date.now();
       const windowStart = now - opts.windowMs;
@@ -63,12 +70,13 @@ export function rateLimit(options: RateLimitOptions = {}) {
       res.setHeader('X-RateLimit-Remaining', Math.max(0, opts.max - hits - 1));
       res.setHeader('X-RateLimit-Reset', Math.ceil((windowStart + opts.windowMs) / 1000));
 
-      // Create a proxy for the response to track its status
+      // Store original methods
       const originalEnd = res.end;
       const originalJson = res.json;
       let responded = false;
 
-      res.end = function(chunk?: any, encoding?: any, callback?: any) {
+      // Type-safe way to proxy the end method
+      const endProxy = function(this: NextApiResponse, chunk?: any, encoding?: any, callback?: any) {
         if (!responded) {
           responded = true;
           if (
@@ -78,10 +86,11 @@ export function rateLimit(options: RateLimitOptions = {}) {
             // Count the request
           }
         }
-        originalEnd.call(this, chunk, encoding, callback);
+        return originalEnd.call(this, chunk, encoding, callback);
       };
 
-      res.json = function(data: any) {
+      // Type-safe way to proxy the json method
+      const jsonProxy = function(this: NextApiResponse, data: any) {
         if (!responded) {
           responded = true;
           if (
@@ -94,10 +103,23 @@ export function rateLimit(options: RateLimitOptions = {}) {
         return originalJson.call(this, data);
       };
 
+      // Apply proxies safely
+      Object.defineProperty(res, 'end', {
+        value: endProxy,
+        writable: true,
+        configurable: true
+      });
+
+      Object.defineProperty(res, 'json', {
+        value: jsonProxy,
+        writable: true,
+        configurable: true
+      });
+
       await next();
     } catch (error) {
       console.error('Rate limit middleware error:', error);
-      next();
+      await next();
     }
   };
 } 

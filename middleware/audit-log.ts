@@ -126,6 +126,7 @@ export function auditLog(options: AuditLogOptions = {}) {
           status_code: 500,
           response_time: Date.now() - startTime,
           error: error instanceof Error ? error.message : 'Unknown error',
+          user_agent: req.headers['user-agent'] || 'unknown',
         };
         await saveAuditLog(logEntry);
       }

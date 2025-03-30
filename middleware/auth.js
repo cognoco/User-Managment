@@ -1,4 +1,4 @@
-const { supabase } = require('../lib/supabase');
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Authentication middleware for API routes
@@ -6,7 +6,7 @@ const { supabase } = require('../lib/supabase');
  * @param {Object} options - Middleware options
  * @param {boolean} options.requireAdmin - Whether to require admin role
  */
-function withAuth(handler, options = {}) {
+export function withAuth(handler, options = {}) {
   return async (req, res) => {
     try {
       // Check for authorization header
@@ -38,5 +38,3 @@ function withAuth(handler, options = {}) {
     }
   };
 }
-
-module.exports = { withAuth }; 

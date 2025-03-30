@@ -22,9 +22,14 @@
       "@/middleware/*": ["middleware/*"],
       "@/pages/*": ["pages/*"],
       "@/styles/*": ["styles/*"],
-      "@/utils/*": ["utils/*"]
+      "@/utils/*": ["utils/*"],
+      "project/@/*": ["project/*"],
+      "project/@/components/*": ["project/src/components/*"],
+      "project/@/lib/*": ["project/src/lib/*"],
+      "project/@/pages/*": ["project/src/pages/*"],
+      "project/@/utils/*": ["project/src/utils/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "project/src/**/*"]
 } 

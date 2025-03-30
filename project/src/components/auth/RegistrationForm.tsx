@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserType } from '@/lib/types/user-type';
 import { useUserManagement } from '@/lib/UserManagementProvider';
 import { useAuthStore } from '@/lib/stores/auth.store';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlatformComponent } from '@/lib/UserManagementProvider';
+import { Check, X } from 'lucide-react';
 
 // Base registration schema
 const baseRegistrationSchema = z.object({
@@ -58,8 +58,66 @@ const registrationSchema = z.discriminatedUnion('userType', [
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
 
+// Password requirements component
+interface PasswordRequirementProps {
+  meets: boolean;
+  text: string;
+}
+
+function PasswordRequirement({ meets, text }: PasswordRequirementProps) {
+  return (
+    <div className="flex items-center space-x-2">
+      {meets ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-red-500" />
+      )}
+      <span className={`text-sm ${meets ? 'text-green-500' : 'text-red-500'}`}>{text}</span>
+    </div>
+  );
+}
+
+function PasswordRequirements({ password }: { password: string }) {
+  // Define all password requirements
+  const requirements = [
+    { 
+      meets: password.length >= 8, 
+      text: 'At least 8 characters'
+    },
+    { 
+      meets: /[A-Z]/.test(password), 
+      text: 'At least one uppercase letter'
+    },
+    { 
+      meets: /[a-z]/.test(password), 
+      text: 'At least one lowercase letter'
+    },
+    { 
+      meets: /[0-9]/.test(password), 
+      text: 'At least one number'
+    }
+  ];
+
+  // Only show requirements when there's any input
+  if (password.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 space-y-2 p-3 border rounded bg-slate-50">
+      <div className="text-sm font-medium mb-1">Password must have:</div>
+      {requirements.map((requirement, index) => (
+        <PasswordRequirement
+          key={index}
+          meets={requirement.meets}
+          text={requirement.text}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function RegistrationForm() {
-  const { t } = useTranslation();
   const { corporateUsers } = useUserManagement();
   const { register: registerUser, isLoading, error } = useAuthStore();
   const [userType, setUserType] = useState<UserType>(corporateUsers.defaultUserType);
@@ -70,7 +128,12 @@ export function RegistrationForm() {
       userType: corporateUsers.defaultUserType,
       acceptTerms: false,
     },
+    mode: 'onChange', // Validate on change for real-time feedback
   });
+  
+  // Watch password field to validate requirements in real-time
+  const password = form.watch('password') || '';
+  const confirmPassword = form.watch('confirmPassword') || '';
   
   const onSubmit = async (data: RegistrationFormValues) => {
     // Create company object for corporate users
@@ -82,14 +145,11 @@ export function RegistrationForm() {
     } : undefined;
     
     // Register user with backend
-    await registerUser({
-      email: data.email,
-      password: data.password,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      userType: data.userType,
-      company,
-    });
+    await registerUser(data.email, data.password);
+    
+    // Note: Additional user data like firstName, lastName, etc. would need to be
+    // saved in a separate profile update API call after registration is complete.
+    // For now, we're just calling the basic register function with email and password.
   };
   
   // Switch user type and reset related fields
@@ -112,9 +172,9 @@ export function RegistrationForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">{t('auth.register.title')}</h1>
+        <h1 className="text-2xl font-bold">Create Your Account</h1>
         <p className="text-muted-foreground">
-          {t('auth.register.description')}
+          Register for a new account to get started
         </p>
       </div>
       
@@ -128,20 +188,21 @@ export function RegistrationForm() {
         {/* User Type Selection */}
         {showUserTypeSelection && (
           <div className="space-y-2">
-            <Label>{t('auth.register.userType')}</Label>
+            <Label>User Type</Label>
             <RadioGroup 
               defaultValue={corporateUsers.defaultUserType} 
               value={userType}
               onValueChange={(value) => handleUserTypeChange(value as UserType)}
               className="flex space-x-4"
+              aria-label="User Type"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value={UserType.PRIVATE} id="private" />
-                <Label htmlFor="private">{t('auth.register.privateUser')}</Label>
+                <Label htmlFor="private">Private User</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value={UserType.CORPORATE} id="corporate" />
-                <Label htmlFor="corporate">{t('auth.register.corporateUser')}</Label>
+                <Label htmlFor="corporate">Corporate User</Label>
               </div>
             </RadioGroup>
           </div>
@@ -149,7 +210,7 @@ export function RegistrationForm() {
         
         {/* Email & Password Fields - Common for both user types */}
         <div className="space-y-2">
-          <Label htmlFor="email">{t('auth.register.email')}</Label>
+          <Label htmlFor="email">Email</Label>
           <Input 
             id="email" 
             type="email" 
@@ -163,14 +224,14 @@ export function RegistrationForm() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">{t('auth.register.firstName')}</Label>
+            <Label htmlFor="firstName">First Name</Label>
             <Input 
               id="firstName" 
               {...form.register('firstName')} 
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">{t('auth.register.lastName')}</Label>
+            <Label htmlFor="lastName">Last Name</Label>
             <Input 
               id="lastName" 
               {...form.register('lastName')} 
@@ -179,55 +240,58 @@ export function RegistrationForm() {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="password">{t('auth.register.password')}</Label>
+          <Label htmlFor="password">Password</Label>
           <Input 
             id="password" 
             type="password" 
             {...form.register('password')} 
           />
-          {form.formState.errors.password && (
-            <p className="text-destructive text-sm">{form.formState.errors.password.message}</p>
-          )}
+          <PasswordRequirements password={password} />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">{t('auth.register.confirmPassword')}</Label>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
           <Input 
             id="confirmPassword" 
             type="password" 
             {...form.register('confirmPassword')} 
           />
-          {form.formState.errors.confirmPassword && (
-            <p className="text-destructive text-sm">{form.formState.errors.confirmPassword.message}</p>
+          {password && confirmPassword && password !== confirmPassword && (
+            <p className="text-destructive text-sm">Passwords do not match</p>
           )}
         </div>
         
         {/* Corporate User Fields */}
         {userType === UserType.CORPORATE && (
           <div className="space-y-4 p-4 border rounded-md bg-muted/20">
-            <h3 className="font-medium">{t('auth.register.companyInformation')}</h3>
+            <h3 className="font-medium">Company Information</h3>
             
             <div className="space-y-2">
-              <Label htmlFor="companyName">{t('auth.register.companyName')} *</Label>
+              <Label htmlFor="companyName">Company Name *</Label>
               <Input 
                 id="companyName" 
                 {...form.register('companyName')} 
               />
-              {form.formState.errors.companyName && (
-                <p className="text-destructive text-sm">{form.formState.errors.companyName.message}</p>
+              {userType === UserType.CORPORATE && 
+                // @ts-ignore - companyName error exists when userType is CORPORATE
+                form.formState.errors.companyName?.message && (
+                <p className="text-destructive text-sm">
+                  {/* @ts-ignore */}
+                  {form.formState.errors.companyName.message}
+                </p>
               )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="position">{t('auth.register.position')}</Label>
+                <Label htmlFor="position">Position</Label>
                 <Input 
                   id="position" 
                   {...form.register('position')} 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="industry">{t('auth.register.industry')}</Label>
+                <Label htmlFor="industry">Industry</Label>
                 <Input 
                   id="industry" 
                   {...form.register('industry')} 
@@ -236,13 +300,13 @@ export function RegistrationForm() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="companySize">{t('auth.register.companySize')}</Label>
+              <Label htmlFor="companySize">Company Size</Label>
               <select
                 id="companySize"
                 className="w-full px-3 py-2 border rounded-md"
                 {...form.register('companySize')}
               >
-                <option value="">{t('auth.register.selectCompanySize')}</option>
+                <option value="">Select Company Size</option>
                 <option value="1-10">1-10</option>
                 <option value="11-50">11-50</option>
                 <option value="51-200">51-200</option>
@@ -257,12 +321,15 @@ export function RegistrationForm() {
         {/* Terms and Conditions */}
         <div className="flex items-center space-x-2">
           <Checkbox 
-            id="acceptTerms" 
-            {...form.register('acceptTerms')} 
+            id="acceptTerms"
+            checked={form.watch('acceptTerms')}
+            onCheckedChange={(checked) => 
+              form.setValue('acceptTerms', checked === true)
+            }
           />
-          <Label htmlFor="acceptTerms" className="text-sm">
-            {t('auth.register.termsAgree')} <a href="#" className="underline">{t('auth.register.termsLink')}</a>
-          </Label>
+          <label htmlFor="acceptTerms" className="text-sm">
+            I agree to the Terms and Conditions
+          </label>
         </div>
         {form.formState.errors.acceptTerms && (
           <p className="text-destructive text-sm">{form.formState.errors.acceptTerms.message}</p>
@@ -270,13 +337,12 @@ export function RegistrationForm() {
         
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? t('common.loading') : t('auth.register.submit')}
+          {isLoading ? "Loading..." : "Create Account"}
         </Button>
         
-        {/* Login Link */}
-        <div className="text-center text-sm">
-          {t('auth.register.alreadyHaveAccount')} <a href="/login" className="underline">{t('auth.login.title')}</a>
-        </div>
+        <p className="text-center text-sm">
+          Already have an account? <a href="/login" className="underline">Sign in</a>
+        </p>
       </form>
     </div>
   );

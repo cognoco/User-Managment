@@ -1,42 +1,31 @@
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 export const handlers = [
-  rest.get('/api/profile', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        bio: 'Software developer',
-        location: 'New York',
-        website: 'https://example.com',
-        avatarUrl: null,
-        isPublic: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    );
+  http.get('/api/profile', () => {
+    return HttpResponse.json({
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      bio: 'Software developer',
+      location: 'New York',
+      website: 'https://example.com',
+      avatarUrl: null,
+      isPublic: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   }),
   
-  rest.put('/api/profile', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json(req.body)
-    );
+  http.put('/api/profile', async ({ request }) => {
+    const body = await request.json();
+    return HttpResponse.json(body);
   }),
   
-  rest.post('/api/profile/avatar', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({ avatarUrl: 'https://example.com/avatar.jpg' })
-    );
+  http.post('/api/profile/avatar', () => {
+    return HttpResponse.json({ avatarUrl: 'https://example.com/avatar.jpg' });
   }),
   
-  rest.delete('/api/profile/avatar', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({ success: true })
-    );
+  http.delete('/api/profile/avatar', () => {
+    return HttpResponse.json({ success: true });
   }),
 ];

@@ -24,17 +24,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  register: async (email: string, password: string) => {
+  register: async (email: string, password: string): Promise<void> => {
     try {
       set({ isLoading: true, error: null });
+      
+      console.log('Registering user:', email);
+      
       const response = await api.post('/auth/register', { email, password });
+      console.log('Registration response:', response.data);
+      
       const { user, token } = response.data;
       
+      // Store token in localStorage for persistent login
       localStorage.setItem('auth_token', token);
-      set({ user, isAuthenticated: true, isLoading: false });
-    } catch (error) {
+      
+      // Update store with user data and authentication state
       set({ 
-        error: error instanceof Error ? error.message : 'Registration failed',
+        user, 
+        isAuthenticated: true, 
+        isLoading: false 
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      // Set error message for display
+      set({ 
+        error: error.response?.data?.error || 'Registration failed. Please try again.',
         isLoading: false 
       });
     }

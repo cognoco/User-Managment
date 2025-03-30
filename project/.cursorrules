@@ -1,3 +1,8 @@
+DO NOT CHANGE MORE THAN ONE functionality at the time and then pause to give the user time to check and tell you to move on.  Keep in mind that we need to build this app as a separate building block that can be plugged into any app. It must be versatile and flexible. We currently use Supabase, but we might want to use other database for other services. Contain all code clean and easy to replace. Keep front and back end separated. Always ask if you have several options and you are not sure. This app has to work with both web and mobile application. It has to be plug in into another apps and all functionalities that are not absolute core have to be easy to turn on and off for different apps.  
+  
+DO NOT REWRITE ANYTHING DUE TO FAILED TEST! DOCUMENT RESULTS OF THE TEST and ask for next action. Once a test fails, the most probable reason for failing is a reference to a file that has been moved. For fixes always review the interdependencies in the files. 
+
+
 # User Management System Implementation Checklist
 
 ## Project Overview
@@ -147,5 +152,5 @@ This document tracks the implementation progress of our user management system f
 - [ ] Phase 4: Testing & Security
 - [ ] Phase 5: Deployment & Documentation 
 
-Follow this plan! Remember that we need to build this as a separate building block that can be plugged into any app. It must be versatile and flexible. We currently use Supabase, but we might want to use other database for other services. Contain all code clean and easy to replace. Keep front and back end separated. Always ask if you have several options and you are not sure. This app has to work with both web and mobile application. It has to be plugguble and all functionalities that are not absolute core have to be easy to turn on and off for different apps.  
+Follow this plan! Remember that we need to build this as a separate building block that can be plugged into any app. It must be versatile and flexible. We currently use Supabase, but we might want to use other database for other services. Contain all code clean and easy to replace. Keep front and back end separated. Always ask if you have several options and you are not sure. This app has to work with both web and mobile application. It has to be plug in into another apps and all functionalities that are not absolute core have to be easy to turn on and off for different apps.  
   
